@@ -91,7 +91,7 @@ router.post(
                 productCategory,
                 accountType,
             } = req.body;
-
+            console.log("BASE_URL =", process.env.BASE_URL);
             const imageUrls =
                 req.files?.map(
                     (file) => `${process.env.BASE_URL}/uploads/${file.filename}`
