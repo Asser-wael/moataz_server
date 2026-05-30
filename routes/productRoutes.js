@@ -95,7 +95,7 @@ router.post(
       // ✅ FIXED
       const imageUrls =
         req.files?.map(
-          (file) => `http://localhost:3001/uploads/${file.filename}`
+          (file) => `https://moataz-client.vercel.app/uploads/${file.filename}`
         ) || [];
 
       const product = await ProductModel.create({
@@ -131,7 +131,7 @@ router.put(
 
       if (req.files && req.files.length > 0) {
         const images = req.files.map(
-          (file) => `http://localhost:3001/uploads/${file.filename}`
+          (file) => `https://moataz-client.vercel.app/uploads/${file.filename}`
         );
 
         updatedData.productImage = images;
