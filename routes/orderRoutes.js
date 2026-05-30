@@ -40,7 +40,7 @@ router.post(
         name: req.body.name,
         phoneNum: req.body.phoneNum,
         photo: req.file
-          ? `https://moataz-client.vercel.app/uploads/${req.file.filename}`
+          ? `${process.env.BASE_URL}/uploads/${req.file.filename}`
           : "",
         totalPrice: Number(req.body.totalPrice) || 0,
       });
