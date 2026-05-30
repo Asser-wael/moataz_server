@@ -22,6 +22,7 @@ const router = express.Router();
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
   try {
+    console.log(req.body);
     const { name, email, password } = req.body;
 
     if (password.length < 6) {
@@ -30,7 +31,6 @@ router.post("/register", async (req, res) => {
 
     const exists = await UserModel.findOne({ email });
     if (exists) return res.status(400).json({ message: "User exists" });
-
     const hashPassword = await bcrypt.hash(password, 10);
 
     await UserModel.create({
