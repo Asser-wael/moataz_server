@@ -91,7 +91,14 @@ router.post(
                 productCategory,
                 accountType,
             } = req.body;
-            console.log("BASE_URL =", process.env.BASE_URL);
+
+            if (!req.files || req.files.length === 0) {
+                return res.status(400).json({
+                    message: "No images uploaded"
+                });
+            }
+            console.log("FILES:", req.files);
+            console.log("BODY:", req.body);
             const imageUrls =
                 req.files?.map(
                     (file) => `${process.env.BASE_URL}/uploads/${file.filename}`
