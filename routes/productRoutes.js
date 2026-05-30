@@ -117,8 +117,10 @@ router.post(
 
             res.status(201).json(product);
         } catch (err) {
-            res.status(500).json({
-                message: "Error creating product",
+            console.log(err);
+            return res.status(500).json({
+                message: err.message,
+                stack: err.stack,
             });
         }
     }
