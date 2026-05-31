@@ -111,12 +111,19 @@ router.post("/resetPassword", async (req, res) => {
 
     console.log("4");
 
-    await transporter.sendMail({
-      from: process.env.EMAIL,
-      to: email,
-      subject: "Password Reset Code",
-      html: `<h1>${otp}</h1>`,
-    });
+try {
+  const info = await transporter.sendMail({
+    from: process.env.EMAIL,
+    to: email,
+    subject: "Password Reset Code",
+    html: `<h1>${otp}</h1>`,
+  });
+
+  console.log("MAIL SENT:", info);
+} catch (mailError) {
+  console.log("MAIL ERROR:", mailError);
+  throw mailError;
+}
 
     console.log("5");
 
