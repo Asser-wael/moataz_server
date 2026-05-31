@@ -124,7 +124,10 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false,
   },
 });
-
+console.log("MESSAGE ID:", transporter.messageId);
+console.log("RESPONSE:", transporter.response);
+console.log("ACCEPTED:", transporter.accepted);
+console.log("REJECTED:", transporter.rejected);
   console.log("MAIL SENT:", transporter);
 } catch (mailError) {
   console.log("MAIL ERROR:", mailError);
