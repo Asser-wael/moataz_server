@@ -115,20 +115,27 @@ try {
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false, // مهم مع 587
+  secure: false,
   auth: {
     user: process.env.EMAIL,
     pass: process.env.APP_PASSWORD,
   },
-  tls: {
-    rejectUnauthorized: false,
-  },
 });
-console.log("MESSAGE ID:", transporter.messageId);
-console.log("RESPONSE:", transporter.response);
-console.log("ACCEPTED:", transporter.accepted);
-console.log("REJECTED:", transporter.rejected);
-  console.log("MAIL SENT:", transporter);
+
+const info = await transporter.sendMail({
+  from: process.env.EMAIL,
+  to: email,
+  subject: "Password Reset Code",
+  html: `
+    <h2>Password Reset Code</h2>
+    <h1>${otp}</h1>
+  `,
+});
+
+console.log("MESSAGE ID:", info.messageId);
+console.log("RESPONSE:", info.response);
+console.log("ACCEPTED:", info.accepted);
+console.log("REJECTED:", info.rejected);
 } catch (mailError) {
   console.log("MAIL ERROR:", mailError);
   throw mailError;
