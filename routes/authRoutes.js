@@ -84,44 +84,50 @@ router.post("/login", async (req, res) => {
 // ✅ RESET PASSWARD
 router.post("/resetPassword", async (req, res) => {
   try {
+    console.log("1");
+
     const { email } = req.body;
 
     const exists = await UserModel.findOne({ email });
 
+    console.log("2");
+
     if (!exists) {
       return res.status(400).json({
-        message: "User not exists"
+        message: "User not exists",
       });
     }
 
-    // generate otp
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
 
-    // save otp
+    console.log("3");
+
     exists.resetOtp = otp;
-
-    // expires after 5 minutes
     exists.resetOtpExpire = Date.now() + 5 * 60 * 1000;
 
     await exists.save();
 
-    // send email
+    console.log("4");
+
     await transporter.sendMail({
       from: process.env.EMAIL,
       to: email,
       subject: "Password Reset Code",
-      html: `<h1>${otp}</h1>`
+      html: `<h1>${otp}</h1>`,
     });
+
+    console.log("5");
 
     res.json({
-      message: "OTP sent"
+      message: "OTP sent",
     });
-
   } catch (err) {
-    console.log(err);
+    console.log("ERROR =>", err);
 
     res.status(500).json({
-      message: "Server error"
+      message: err.message,
     });
   }
 });
