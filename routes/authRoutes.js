@@ -3,13 +3,18 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import UserModel from "../models/Users.js";
 import dotenv from "dotenv";
-import { Resend } from "resend";
+import SibApiV3Sdk from "@getbrevo/brevo";
 
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const router = express.Router();
+
+/* ================= BREVO SETUP ================= */
+let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+apiInstance.setApiKey(
+  SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY
+);
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
   try {
@@ -75,13 +80,9 @@ router.post("/login", async (req, res) => {
 // ✅ RESET PASSWARD
 router.post("/resetPassword", async (req, res) => {
   try {
-    console.log("1");
-
     const { email } = req.body;
 
     const exists = await UserModel.findOne({ email });
-
-    console.log("2");
 
     if (!exists) {
       return res.status(400).json({
@@ -91,48 +92,38 @@ router.post("/resetPassword", async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    console.log("3");
-
     exists.resetOtp = otp;
     exists.resetOtpExpire = Date.now() + 5 * 60 * 1000;
 
     await exists.save();
 
-    console.log("4");
+    /* ================= SEND EMAIL ================= */
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
 
-    const { data, error } = await resend.emails.send({
-      from: "Acme <onboarding@resend.dev>",
-      to: email,
-      subject: "Password Reset Code",
-      html: `
-        <div style="font-family: Arial">
-          <h2>Password Reset Code</h2>
-          <h1>${otp}</h1>
-          <p>This code expires in 5 minutes</p>
-        </div>
-      `,
-    });
+    sendSmtpEmail.subject = "Password Reset Code";
+    sendSmtpEmail.to = [{ email }];
+    sendSmtpEmail.sender = {
+      name: "Moataz Store",
+      email: "no-reply@moataz.com", // عادي مؤقت
+    };
 
-    if (error) {
-      console.log("RESEND ERROR:", error);
+    sendSmtpEmail.htmlContent = `
+      <div style="font-family: Arial">
+        <h2>Password Reset Code</h2>
+        <h1>${otp}</h1>
+        <p>Expires in 5 minutes</p>
+      </div>
+    `;
 
-      return res.status(500).json({
-        message: "Failed to send email",
-      });
-    }
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
 
-    console.log("EMAIL SENT:", data);
-
-    console.log("5");
-
-    res.json({
+    return res.json({
       message: "OTP sent",
     });
   } catch (err) {
-    console.log("ERROR =>", err);
-
-    res.status(500).json({
-      message: err.message,
+    console.log(err);
+    return res.status(500).json({
+      message: "Server error",
     });
   }
 });
