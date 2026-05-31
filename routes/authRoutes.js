@@ -89,28 +89,31 @@ router.post("/resetPassword", async (req, res) => {
     await exists.save();
 
     /* ================= SEND EMAIL ================= */
-    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+ router.post("/resetPassword", async (req, res) => {
+  try {
+    const { email } = req.body;
 
-    sendSmtpEmail.subject = "Password Reset Code";
-    sendSmtpEmail.to = [{ email }];
-    sendSmtpEmail.sender = {
-      name: "Moataz Store",
-      email: "no-reply@moataz.com", // عادي مؤقت
-    };
+    const exists = await UserModel.findOne({ email });
 
-    sendSmtpEmail.htmlContent = `
-      <div style="font-family: Arial">
-        <h2>Password Reset Code</h2>
-        <h1>${otp}</h1>
-        <p>Expires in 5 minutes</p>
-      </div>
-    `;
+    if (!exists) {
+      return res.status(400).json({
+        message: "User not exists",
+      });
+    }
 
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    exists.resetOtp = otp;
+    exists.resetOtpExpire = Date.now() + 5 * 60 * 1000;
+
+    await exists.save();
+
+    await sendEmail(email, otp);
 
     return res.json({
       message: "OTP sent",
     });
+
   } catch (err) {
     console.log(err);
     return res.status(500).json({
