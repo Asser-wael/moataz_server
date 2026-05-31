@@ -10,14 +10,23 @@ dotenv.config();
 const router = express.Router();
 
 /* ================= EMAIL TRANSPORT ================= */
+/* ================= EMAIL TRANSPORT ================= */
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 411, // سنستخدم منفذ 587 البديل لضمان عدم حظره من الاستضافة
+  port: 587, 
+  secure: false, // يجب أن تكون false مع منفذ 587
   auth: {
     user: process.env.EMAIL,
     pass: process.env.APP_PASSWORD,
-  }, tls: {
-    rejectUnauthorized: false,
   },
+  // الأسطر التالية هي الحل السحري للمشكلة أونلاين 👇
+  connectionTimeout: 10000, // 10 ثواني كحد أقصى للمحاولة
+  greetingTimeout: 10000,
+  dnsTimeout: 10000,
+  tls: {
+    rejectUnauthorized: false // يتخطى مشاكل الحماية والتصاريح على الاستضافة
+  }
 });
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
