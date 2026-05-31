@@ -13,13 +13,15 @@ const router = express.Router();
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false,
+  secure: false, // true لـ 465، false للمنافذ الأخرى مثل 587
   auth: {
     user: process.env.EMAIL,
     pass: process.env.APP_PASSWORD,
   },
+  tls: {
+    rejectUnauthorized: false // هذا السطر يمنع تعطل السيرفر بسبب شهادات الـ TLS أونلاين
+  }
 });
-
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
   try {
