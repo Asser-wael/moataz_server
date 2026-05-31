@@ -11,21 +11,21 @@ const router = express.Router();
 
 /* ================= EMAIL TRANSPORT ================= */
 /* ================= EMAIL TRANSPORT ================= */
+/* ================= EMAIL TRANSPORT ================= */
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 411, // سنستخدم منفذ 587 البديل لضمان عدم حظره من الاستضافة
-  port: 587, 
-  secure: false, // يجب أن تكون false مع منفذ 587
+  // استخدام آي بي IPv4 مباشر لسيرفر Gmail لتخطي مشكلة الـ ENETUNREACH
+  host: "74.125.134.108", 
+  port: 465,               // سننتقل لمنفذ 465 الأكثر استقراراً مع الـ IP المباشر
+  secure: true,            // يجب أن تكون true مع منفذ 465
   auth: {
     user: process.env.EMAIL,
     pass: process.env.APP_PASSWORD,
   },
-  // الأسطر التالية هي الحل السحري للمشكلة أونلاين 👇
-  connectionTimeout: 10000, // 10 ثواني كحد أقصى للمحاولة
-  greetingTimeout: 10000,
-  dnsTimeout: 10000,
+  connectionTimeout: 15000, // زيادة المهلة لـ 15 ثانية لحين إتمام الاتصال الآمن
+  greetingTimeout: 15000,
   tls: {
-    rejectUnauthorized: false // يتخطى مشاكل الحماية والتصاريح على الاستضافة
+    // هذا السطر مهم جداً لأننا نستخدم IP مباشر وليس اسم الدومين
+    rejectUnauthorized: false 
   }
 });
 // ✅ REGISTER
