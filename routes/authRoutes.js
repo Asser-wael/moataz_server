@@ -3,14 +3,14 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import UserModel from "../models/Users.js";
 import dotenv from "dotenv";
-import SibApiV3Sdk from "@getbrevo/brevo";
+import * as SibApiV3Sdk from "@getbrevo/brevo";
 
 dotenv.config();
 
 const router = express.Router();
 
-/* ================= BREVO SETUP ================= */
-let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
 apiInstance.setApiKey(
   SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey,
   process.env.BREVO_API_KEY
