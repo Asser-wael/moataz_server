@@ -19,7 +19,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.APP_PASSWORD,
   },
 });
-const router = express.Router();
 
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
