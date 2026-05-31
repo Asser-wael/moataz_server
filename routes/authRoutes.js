@@ -112,14 +112,20 @@ router.post("/resetPassword", async (req, res) => {
     console.log("4");
 
 try {
-  const info = await transporter.sendMail({
-    from: process.env.EMAIL,
-    to: email,
-    subject: "Password Reset Code",
-    html: `<h1>${otp}</h1>`,
-  });
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // مهم مع 587
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.APP_PASSWORD,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
 
-  console.log("MAIL SENT:", info);
+  console.log("MAIL SENT:", transporter);
 } catch (mailError) {
   console.log("MAIL ERROR:", mailError);
   throw mailError;
