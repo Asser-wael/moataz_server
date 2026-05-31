@@ -1,15 +1,22 @@
-import * as Brevo from "@getbrevo/brevo";
+import express from "express";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import UserModel from "../models/Users.js";
 import dotenv from "dotenv";
+import * as Brevo from "@getbrevo/brevo";
 
 dotenv.config();
 
-const apiInstance = new Brevo.TransactionalEmailsApi();
+const router = express.Router();
 
-apiInstance.authentications["apiKey"].apiKey = process.env.BREVO_API_KEY;
-// ✅ REGISTER
+/* ================= BREVO SETUP ================= */
+const apiInstance = new Brevo.TransactionalEmailsApi();
+apiInstance.authentications["apiKey"].apiKey =
+  process.env.BREVO_API_KEY;
+
+/* ================= REGISTER ================= */
 router.post("/register", async (req, res) => {
   try {
-    console.log(req.body);
     const { name, email, password } = req.body;
 
     if (password.length < 6) {
@@ -18,6 +25,7 @@ router.post("/register", async (req, res) => {
 
     const exists = await UserModel.findOne({ email });
     if (exists) return res.status(400).json({ message: "User exists" });
+
     const hashPassword = await bcrypt.hash(password, 10);
 
     await UserModel.create({
@@ -27,13 +35,12 @@ router.post("/register", async (req, res) => {
     });
 
     res.status(201).json({ message: "Registered" });
-
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ LOGIN
+/* ================= LOGIN ================= */
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -63,144 +70,84 @@ router.post("/login", async (req, res) => {
     });
 
     res.json({ accessToken });
-
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
-// ✅ RESET PASSWARD
+
+/* ================= RESET PASSWORD ================= */
 router.post("/resetPassword", async (req, res) => {
   try {
     const { email } = req.body;
 
-    const exists = await UserModel.findOne({ email });
-
-    if (!exists) {
-      return res.status(400).json({
-        message: "User not exists",
-      });
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not exists" });
     }
 
+    // OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    exists.resetOtp = otp;
-    exists.resetOtpExpire = Date.now() + 5 * 60 * 1000;
+    user.resetOtp = otp;
+    user.resetOtpExpire = Date.now() + 5 * 60 * 1000;
 
-    await exists.save();
+    await user.save();
 
-    /* ================= SEND EMAIL ================= */
- router.post("/resetPassword", async (req, res) => {
-  try {
-    const { email } = req.body;
+    // ===== SEND EMAIL VIA BREVO =====
+    const emailData = new Brevo.SendSmtpEmail();
 
-    const exists = await UserModel.findOne({ email });
+    emailData.subject = "Password Reset Code";
+    emailData.to = [{ email }];
+    emailData.sender = {
+      name: "Moataz Store",
+      email: "no-reply@moataz.com",
+    };
 
-    if (!exists) {
-      return res.status(400).json({
-        message: "User not exists",
-      });
-    }
+    emailData.htmlContent = `
+      <div style="font-family:Arial">
+        <h2>Your OTP Code</h2>
+        <h1>${otp}</h1>
+        <p>Valid for 5 minutes</p>
+      </div>
+    `;
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await apiInstance.sendTransacEmail(emailData);
 
-    exists.resetOtp = otp;
-    exists.resetOtpExpire = Date.now() + 5 * 60 * 1000;
-
-    await exists.save();
-
-    await sendEmail(email, otp);
-
-    return res.json({
-      message: "OTP sent",
-    });
-
+    return res.json({ message: "OTP sent" });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({
-      message: "Server error",
-    });
+    return res.status(500).json({ message: "Server error" });
   }
 });
+
+/* ================= VERIFY OTP ================= */
 router.post("/verifyOtp", async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 
     const user = await UserModel.findOne({ email });
-
     if (!user) {
-      return res.status(400).json({
-        message: "User not found"
-      });
+      return res.status(400).json({ message: "User not found" });
     }
 
-    // check OTP
     if (user.resetOtp !== otp) {
-      return res.status(400).json({
-        message: "Invalid OTP"
-      });
+      return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    // check expiry
     if (user.resetOtpExpire < Date.now()) {
-      return res.status(400).json({
-        message: "OTP expired"
-      });
+      return res.status(400).json({ message: "OTP expired" });
     }
 
-    // hash password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-
-    // clear OTP
+    user.password = await bcrypt.hash(newPassword, 10);
     user.resetOtp = null;
     user.resetOtpExpire = null;
 
     await user.save();
 
-    res.json({
-      message: "Password updated"
-    });
-
+    res.json({ message: "Password updated" });
   } catch (err) {
-    console.log(err);
-
-    res.status(500).json({
-      message: "Server error"
-    });
+    res.status(500).json({ message: "Server error" });
   }
-});
-
-// ✅ REFRESH
-router.post("/refresh", (req, res) => {
-  try {
-    const token = req.cookies.refreshToken;
-    if (!token) return res.sendStatus(401);
-
-    jwt.verify(token, process.env.JWT_REFRESHSECRET, (err, decoded) => {
-      if (err) return res.sendStatus(403);
-
-      const accessToken = jwt.sign(
-        { id: decoded.id },
-        process.env.JWT_SECRET,
-        { expiresIn: "15m" }
-      );
-
-      res.json({ accessToken });
-    });
-
-  } catch (err) {
-    res.sendStatus(500);
-  }
-});
-
-// ✅ LOGOUT
-router.post("/logout", (req, res) => {
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: false,
-  });
-  res.json({ message: "Logged out" });
 });
 
 export default router;
