@@ -2,23 +2,14 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import UserModel from "../models/Users.js";
-import nodemailer from "nodemailer"
 import dotenv from "dotenv";
-dotenv.config();
-// ==============================
-// EMAIL
-// ==============================
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.APP_PASSWORD,
-  }
-})
+import { Resend } from "resend";
 
+dotenv.config();
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const router = express.Router();
-
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
   try {
@@ -98,9 +89,7 @@ router.post("/resetPassword", async (req, res) => {
       });
     }
 
-    const otp = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     console.log("3");
 
@@ -111,35 +100,28 @@ router.post("/resetPassword", async (req, res) => {
 
     console.log("4");
 
-try {
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.APP_PASSWORD,
-  },
-});
+    const { data, error } = await resend.emails.send({
+      from: "Acme <onboarding@resend.dev>",
+      to: email,
+      subject: "Password Reset Code",
+      html: `
+        <div style="font-family: Arial">
+          <h2>Password Reset Code</h2>
+          <h1>${otp}</h1>
+          <p>This code expires in 5 minutes</p>
+        </div>
+      `,
+    });
 
-const info = await transporter.sendMail({
-  from: process.env.EMAIL,
-  to: email,
-  subject: "Password Reset Code",
-  html: `
-    <h2>Password Reset Code</h2>
-    <h1>${otp}</h1>
-  `,
-});
+    if (error) {
+      console.log("RESEND ERROR:", error);
 
-console.log("MESSAGE ID:", info.messageId);
-console.log("RESPONSE:", info.response);
-console.log("ACCEPTED:", info.accepted);
-console.log("REJECTED:", info.rejected);
-} catch (mailError) {
-  console.log("MAIL ERROR:", mailError);
-  throw mailError;
-}
+      return res.status(500).json({
+        message: "Failed to send email",
+      });
+    }
+
+    console.log("EMAIL SENT:", data);
 
     console.log("5");
 
