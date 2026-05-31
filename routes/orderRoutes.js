@@ -7,55 +7,53 @@ import { authMiddleware, optionalAuth } from "../middleware/auth.js";
 const router = express.Router();
 
 /* ================= SEND ORDER ================= */
-router.post("/resetPassword", async (req, res) => {
-  try {
-    console.log("1");
+router.post(
+  "/sendOrder",
+  optionalAuth,
+  upload.single("photo"),
+  async (req, res) => {
+    try {
+      const userId = req.user?.id || null;
 
-    const { email } = req.body;
+      let cart = [];
 
-    const exists = await UserModel.findOne({ email });
+      try {
+        cart = JSON.parse(req.body.currentCart || "[]");
+      } catch {
+        return res.status(400).json({ message: "Invalid cart" });
+      }
+      const isValid = cart.every(
+        (item) =>
+          item.productId &&
+          typeof item.quantity === "number" &&
+          item.quantity > 0
+      );
+      if (!isValid) {
+        return res.status(400).json({
+          message: "Invalid cart structure",
+        });
+      }
 
-    console.log("2");
-
-    if (!exists) {
-      return res.status(400).json({
-        message: "User not exists",
+      const order = await Checkout.create({
+        userId,
+        cart,
+        name: req.body.name,
+        phoneNum: req.body.phoneNum,
+        photo: req.file
+          ? `${process.env.BASE_URL}/uploads/${req.file.filename}`
+          : "",
+        totalPrice: Number(req.body.totalPrice) || 0,
       });
+
+      res.status(201).json({
+        success: true,
+        order,
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
     }
-
-    const otp = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
-
-    console.log("3");
-
-    exists.resetOtp = otp;
-    exists.resetOtpExpire = Date.now() + 5 * 60 * 1000;
-
-    await exists.save();
-
-    console.log("4");
-
-    await transporter.sendMail({
-      from: process.env.EMAIL,
-      to: email,
-      subject: "Password Reset Code",
-      html: `<h1>${otp}</h1>`,
-    });
-
-    console.log("5");
-
-    res.json({
-      message: "OTP sent",
-    });
-  } catch (err) {
-    console.log("ERROR =>", err);
-
-    res.status(500).json({
-      message: err.message,
-    });
   }
-});
+);
 /* ================= MY ORDERS ================= */
 router.get("/myorder", authMiddleware, async (req, res) => {
   try {
