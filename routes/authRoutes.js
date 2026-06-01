@@ -14,7 +14,7 @@ const router = express.Router();
 /* ================= EMAIL TRANSPORT ================= */
 const transporter = nodemailer.createTransport({
   // استخدام آي بي IPv4 مباشر لسيرفر Gmail لتخطي مشكلة الـ ENETUNREACH
-  host: "74.125.134.108", 
+  host: "74.125.134.108",
   port: 465,               // سننتقل لمنفذ 465 الأكثر استقراراً مع الـ IP المباشر
   secure: true,            // يجب أن تكون true مع منفذ 465
   auth: {
@@ -25,7 +25,7 @@ const transporter = nodemailer.createTransport({
   greetingTimeout: 15000,
   tls: {
     // هذا السطر مهم جداً لأننا نستخدم IP مباشر وليس اسم الدومين
-    rejectUnauthorized: false 
+    rejectUnauthorized: false
   }
 });
 // ✅ REGISTER
@@ -83,7 +83,6 @@ router.post("/login", async (req, res) => {
       secure: true,
       sameSite: "none",
     });
-
     res.json({ accessToken });
 
   } catch (err) {
@@ -206,8 +205,8 @@ router.post("/refresh", (req, res) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    sameSite: "none",
     secure: true,
+    sameSite: "none",
   });
   res.json({ message: "Logged out" });
 });
