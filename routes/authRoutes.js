@@ -80,8 +80,8 @@ router.post("/login", async (req, res) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: ture,
+      sameSite: "none",
     });
 
     res.json({ accessToken });
@@ -206,8 +206,8 @@ router.post("/refresh", (req, res) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false,
+    sameSite: "none",
+    secure: ture,
   });
   res.json({ message: "Logged out" });
 });
