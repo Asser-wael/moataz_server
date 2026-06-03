@@ -31,7 +31,10 @@ router.delete("/admin/deleteUser/:id", authMiddleware, adminMiddleware, async (r
 // ✅ GET random products
 router.get("/getProducts/random", async (req, res) => {
   try {
-    const Products = await ProductModel.aggregate([{ $sample: { size: 8 } }]);
+    const Products = await ProductModel.aggregate([
+      { $match: { productStock: "inStock" } },
+      { $sample: { size: 8 } }
+    ]);
     res.json(Products);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
