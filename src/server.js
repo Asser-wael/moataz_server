@@ -41,7 +41,7 @@ await connectDB();
 initSocket(server);
 
 app.get("/", (req, res) => {
-  res.json({ message: "Restaurant API" });
+  res.json({ message: "clothesserver API" });
 });
 
 const PORT = process.env.PORT || 3001;
