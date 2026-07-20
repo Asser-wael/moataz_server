@@ -2,13 +2,14 @@ import express from "express";
 import OrderModel from "../models/Order.js";
 import { getIO } from "../config/socket.js";
 import upload from "../middlewares/upload.js";
-import { authMiddleware, cashierMiddleware } from "../middlewares/auth.js";
+import { authMiddleware, adminMiddleware, optionalAuthMiddleware } from "../middlewares/auth.js";
 import ProductModel from "../models/Product.js";
 import { createNotification } from "../services/notificationService.js";
+import UserModel from "../models/User.js";
 
 const router = express.Router();
 
-router.get("/admin/orders", authMiddleware, cashierMiddleware, async (req, res) => {
+router.get("/admin/orders", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const orders = await OrderModel.find()
       .populate("cart.productId")
@@ -20,7 +21,7 @@ router.get("/admin/orders", authMiddleware, cashierMiddleware, async (req, res) 
   }
 });
 
-router.get("/admin/orders/:id", authMiddleware, cashierMiddleware, async (req, res) => {
+router.get("/admin/orders/:id", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const order = await OrderModel.findById(req.params.id).populate("cart.productId");
     if (!order) {
@@ -33,115 +34,74 @@ router.get("/admin/orders/:id", authMiddleware, cashierMiddleware, async (req, r
   }
 });
 
-router.post("/checkOut", upload.single("image"), async (req, res) => {
+// ✅ NEW: أوردرز اليوزر المسجل
+router.get("/my-orders", authMiddleware, async (req, res) => {
   try {
-    const {
-      paymentMethod,
-      fullName,
-      phone,
-      address,
-      city,
-      notes,
-      walletType,
-      walletName,
-      walletNumber,
-    } = req.body;
+    const orders = await OrderModel.find({ userId: req.user.id })
+      .populate("cart.productId")
+      .sort({ createdAt: -1 });
 
-    const cart = JSON.parse(req.body.cart);
-    const io = getIO();
-
-    for (const item of cart) {
-      const product = await ProductModel.findById(item._id);
-
-      if (!product) {
-        return res.status(404).json({
-          message: "Product not found",
-        });
-      }
-
-      const size = product.sizes.find((s) => s.name === item.size);
-
-      if (!size) {
-        return res.status(404).json({
-          message: `Size ${item.size} not found`,
-        });
-      }
-
-      if (size.count <= 0) {
-        return res.status(400).json({
-          message: `${product.name} (${size.name}) is out of stock`,
-        });
-      }
-
-      if (size.count < item.count) {
-        return res.status(400).json({
-          message: `Only ${size.count} left of ${product.name} (${size.name})`,
-        });
-      }
-
-      size.count -= item.count;
-
-      if (size.count <= 3) {
-        io.to("admin").emit("warning", {
-          id: product._id,
-          name: product.name,
-          size: size.name,
-          count: size.count,
-        });
-
-        await createNotification({
-          title: "Low Stock",
-          message: `${product.name} (${size.name}) has only ${size.count} left`,
-          type: "warning",
-          data: {
-            productId: product._id,
-            size: size.name,
-            remaining: size.count,
-          },
-        });
-      }
-
-      await product.save();
-    }
-
-    const image = req.file?.filename;
-
-    const totalPrice = cart.reduce((sum, item) => sum + item.price * item.count, 0);
-
-    const order = await OrderModel.create({
-      paymentMethod,
-      shippingAddress: { fullName, phone, address, city, notes },
-      walletType,
-      walletName,
-      walletNumber,
-      image,
-      cart,
-      totalPrice,
-    });
-
-    io.to("admin").emit("newOrder", order);
-
-    await createNotification({
-      title: "New Order",
-      message: `${fullName} placed a new order.`,
+    res.json({
+      message: "Orders fetched successfully",
       type: "success",
-      data: {
-        orderId: order._id,
-        total: totalPrice,
-      },
-    });
-
-    res.status(200).json({
-      message: "Order placed successfully",
-      type: "success",
-      order,
+      data: orders,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "order error" });
+    console.error("Error fetching user orders:", error);
+    res.status(500).json({ message: "Error retrieving orders" });
   }
 });
 
+// checkOut بقى شغال للـ guest وللـ user المسجل مع بعض
+router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (req, res) => {
+  try {
+    const { walletType, walletName, walletNumber, whats } = req.body;
+    const io = getIO();
+
+    const user = await UserModel.findById(req.user?.id)
+
+    const cart = user ? user.cart : JSON.parse(req.body.cart);
+
+    if (!cart || cart.length === 0) return res.status(400).json({ message: "السلة فارغة" });
+
+    for (const item of cart) {
+      const product = await ProductModel.findById(item.productId || item._id);
+      if (!product) return res.status(404).json({ message: "المنتج غير موجود" });
+
+      const account = product.account.find((s) => s.name === item.option);
+      if (!account || account.count < item.count) {
+        return res.status(400).json({ message: `الكمية المطلوبة غير متوفرة للمنتج ${product.name}` });
+      }
+      
+      account.count -= item.count;
+      if (account.count <= 3) {
+        io.to("admin").emit("warning", { id: product._id, name: product.name, count: account.count });
+        await createNotification({ title: "مخزون منخفض!", message: `المنتج ${product.name} أوشك على النفاذ`, type: "warning" });
+      }
+      await product.save();
+    }
+    
+    const image = req.file?.filename;
+
+    const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.count), 0);
+
+    const order = await OrderModel.create({
+      userId: req.user?.id || null,
+      paymentMethod: "wallet",
+      whats,
+      walletType, walletName, walletNumber, image,
+      cart, totalPrice
+    });
+
+    io.to("admin").emit("newOrder", order);
+    await createNotification({ title: "طلب جديد", message: `قام ${"زائر"} بعمل طلب جديد`, type: "success" });
+
+    res.status(200).json({ message: "تم إرسال طلبك بنجاح وفي انتظار مراجعة الإيصال", type: "success", order });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "حدث خطأ أثناء معالجة الطلب" });
+  }
+});
 router.put("/updateOrderStatus", async (req, res) => {
   try {
     const { id, status } = req.body;

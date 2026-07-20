@@ -46,31 +46,21 @@ export const adminMiddleware = async (req, res, next) => {
         console.error("Error:", error);
     }
 }
-export const chefMiddleware = async (req, res, next) => {
+export const optionalAuthMiddleware = (req, res, next) => {
     try {
-        const user = await UserModel.findById(req.user.id)
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            req.user = null;
+            return next();
         }
-        if (user.role !== "chef" && "admin") {
-            return res.status(403).json({ message: "No admin or chef access" , type:"error"});
-        }
-        next()
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
     } catch (error) {
-        console.error("Error:", error);
+        req.user = null;
+        next();
     }
-}
-export const cashierMiddleware = async (req, res, next) => {
-    try {
-        const user = await UserModel.findById(req.user.id)
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        if (user.role !== "cashier" && user.role !== "admin") {
-            return res.status(403).json({ message: "No admin or cashier access" , type:"error"});
-        }
-        next()
-    } catch (error) {
-        console.error("Error:", error);
-    }
-}
+};

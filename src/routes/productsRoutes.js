@@ -1,5 +1,6 @@
 import express from "express";
 import ProductModel from "../models/Product.js";
+import Notification from "../models/Notification.js";
 import { authMiddleware, adminMiddleware } from "../middlewares/auth.js";
 import upload from "../middlewares/upload.js";
 import fs from "fs";
@@ -89,31 +90,37 @@ router.delete("/removeProduct/:id", async (req, res) => {
 // ADD
 router.post("/addProduct", upload.single("image"), async (req, res) => {
     try {
-        console.log(JSON.parse(req.body.sizes));
 
+        
+        console.log(JSON.parse(req.body.account));
+        
         const product = await ProductModel.create({
             name: req.body.name,
             description: req.body.description,
             Category: req.body.Category,
+            GameplayType: req.body.GameplayType,
             availability: req.body.availability == "true",
             offer: req.body.offer === "true",
             image: req.file?.filename,
-            sizes: JSON.parse(req.body.sizes || "[]"),
+            account: JSON.parse(req.body.account || "[]"),
             colors: JSON.parse(req.body.colors || "[]"),
+            
         });
-        await Notification.create({
+        await createNotification({
             title: "New Product",
             message: `${product.name} added successfully`,
             type: "success",
             data: {
                 productId: product._id,
             },
-        });
+     } );
+        console.log(4);
         res.json({
             message: "Product created successfully",
             type: "success",
             data: product,
         });
+        console.log(5);
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Server error" });
@@ -126,7 +133,7 @@ router.put("/editProduct/:id", upload.single("image"), async (req, res) => {
         const { id } = req.params;
         const updateData = {
             ...req.body,
-            sizes: JSON.parse(req.body.sizes || "[]"),
+            account: JSON.parse(req.body.account || "[]"),
             colors: JSON.parse(req.body.colors || "[]"),
         };
 

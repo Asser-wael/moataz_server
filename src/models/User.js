@@ -5,28 +5,43 @@ const UserSchema = new mongoose.Schema({
   email: String,
   password: String,
 
-  resetOtp: String,
-  resetOtpExpire: Date,
+  verifyOtp: String,
+  verifyOtpExpire: Date,
 
   cart: [
     {
-      productId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "products",
-      },
-      quantity: {
-        type: Number,
-        default: 1,
-      },
+      _id: false, 
+      productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      name: String,
+      image: String,
+      price: Number,
+      option: String,
+      count: { type: Number, default: 1 },
+    },
+  ],
+
+  favorites: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
     },
   ],
   status: {
     type: Boolean,
-    enum: [false,true],
+    enum: [false, true],
   },
+  order: [
+    {
+      orderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "products",
+      },
+    },
+  ],
+
   role: {
     type: String,
-    enum: ["cashier", "admin", "chef"],
+    enum: ["user", "admin"],
   },
 });
 

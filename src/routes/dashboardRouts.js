@@ -2,7 +2,7 @@ import express from "express";
 import OrderModel from "../models/Order.js";
 import UserModel from "../models/User.js";
 import MealModel from "../models/Product.js";
-import { authMiddleware, cashierMiddleware } from "../middlewares/auth.js";
+import { adminMiddleware, authMiddleware } from "../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -128,7 +128,7 @@ async function buildMonthlyChart() {
 router.get(
   "/admin/dashboard",
   authMiddleware,
-  cashierMiddleware,
+  adminMiddleware,
   async (req, res) => {
     try {
       const now = new Date();

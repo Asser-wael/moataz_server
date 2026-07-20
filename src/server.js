@@ -14,6 +14,8 @@ import usersRouts from "./routes/usersRouts.js"
 import customuseRouts from "./routes/customuseRouts.js"
 import productsRoutes from "./routes/productsRoutes.js"
 import orderRouts from "./routes/orderRouts.js"
+import favorites from "./routes/favorites.js"
+import cart from "./routes/cart.js"
 import  adminDashboard  from "./routes/dashboardRouts.js";
 import  notificationsRoute  from "./routes/notificationsRoute.js";
 
@@ -53,6 +55,8 @@ app.use(usersRouts)
 app.use(productsRoutes)
 app.use(customuseRouts)
 app.use(orderRouts)
+app.use(favorites)
+app.use(cart)
 app.use(adminDashboard)
 app.use(notificationsRoute)
 

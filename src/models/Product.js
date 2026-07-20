@@ -1,16 +1,42 @@
 import mongoose from "mongoose";
 
-const ProductSchema = new mongoose.Schema(
+const editionSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  priceOffer: {
+    type: Number,
+    default: 0,
+  },
+  count: {
+    type: Number,
+    required: true,
+  },
+});
+
+const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
+      trim: true,
     },
 
     description: {
       type: String,
       required: true,
     },
+
+    image: {
+      type: String,
+      required: true,
+    },
+
     Category: {
       type: String,
       required: true,
@@ -19,52 +45,24 @@ const ProductSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
     availability: {
       type: Boolean,
-      default: false,
+      default: true,
     },
 
+    account: [editionSchema],
 
-    image: {
+    GameplayType: {
       type: String,
+      required: true
     },
-
-    sizes: [
-      {
-        name: {
-          type: String,
-          required: true,
-        },
-        price: {
-          type: Number,
-        },
-        priceOffer: {
-          type: Number,
-        },
-        count: {
-          type: Number,
-          default: 0,
-        },
-      },
-    ],
     comment: [
       {
-        name: {
-          type: String,
-          required: true,
-        },
-        comment: {
-          type: String,
-          required: false,
-        },
-        stars: {
-          type: Number,
-          required: false,
-        },
+        name: String,
+        comment: String,
+        stars: Number,
       },
-    ],
-    colors: [
-      String
     ],
   },
   {
@@ -72,7 +70,4 @@ const ProductSchema = new mongoose.Schema(
   }
 );
 
-
-const ProductModel = mongoose.model("Product", ProductSchema);
-
-export default ProductModel;
+export default mongoose.model("Product", productSchema);
