@@ -27,7 +27,13 @@ router.delete("/deleteCategory/:id", async (req, res) => {
 
 // POPULAR PRODUCTS
 router.get("/getPopularProducts", async (req, res) => {
-  const data = await PopularModel.find().populate("id"); // ✅ كانت popularDishModel (undefined)
+  const data = await PopularModel.find().populate("id");
+
+  console.log(data);
+  
+  // for (const i of data) {
+  //   const 
+  // }
   res.json({ data });
 });
 

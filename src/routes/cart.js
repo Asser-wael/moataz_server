@@ -11,7 +11,6 @@ const findItemIndex = (cart, { _id, option }) =>
       item.option === option
   );
 
-// بيوحد شكل الكارت الراجع من السيرفر عشان يطابق شكل الجست كارت في الفرونت (_id = product id)
 const formatCart = (cart) =>
   cart.map((item) => ({
     _id: item.productId,
