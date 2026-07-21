@@ -29,14 +29,16 @@ router.delete("/deleteCategory/:id", async (req, res) => {
 router.get("/getPopularProducts", async (req, res) => {
   const data = await PopularModel.find().populate("id");
 
-  console.log(data);
-  
-  // for (const i of data) {
-  //   const 
-  // }
-  res.json({ data });
-});
+  for (const item of data) {
+    if (!item.id) {
+      await PopularModel.findByIdAndDelete(item._id);
+    }
+  }
 
+  const updatedData = await PopularModel.find().populate("id");
+
+  res.json({ data: updatedData });
+});
 router.post("/addPopular", async (req, res) => {
   const exists = await PopularModel.findOne({ id: req.body.id });
 
