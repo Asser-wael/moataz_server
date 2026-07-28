@@ -26,7 +26,7 @@ router.get("/getOffers", async (req, res) => {
     try {
         const products = await ProductModel.aggregate([
             { $match: { offer: true } },
-            { $sample: { size: 3 } }
+            { $sample: { size: 8 } }
         ]);
         res.json({ data: products });
     } catch (error) {
