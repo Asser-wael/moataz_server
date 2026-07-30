@@ -1,24 +1,13 @@
 import mongoose from "mongoose";
 
-const subscriptionSchema = new mongoose.Schema(
-  {
-    type: {
-      type: String,
-      enum: ["admin", "customer"],
-      required: true,
-    },
-    endpoint: { type: String, required: true, unique: true },
-    keys: {
-      p256dh: { type: String, required: true },
-      auth: { type: String, required: true },
-    },
-    orderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Order",
-      default: null,
-    },
+const subscriptionSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  role: { type: String, enum: ["admin", "user"], default: "user" },
+  endpoint: { type: String, required: true, unique: true },
+  keys: {
+    p256dh: String,
+    auth: String,
   },
-  { timestamps: true }
-);
+}, { timestamps: true });
 
 export default mongoose.model("Subscription", subscriptionSchema);

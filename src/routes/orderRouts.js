@@ -72,7 +72,7 @@ router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (
       if (!account || account.count < item.count) {
         return res.status(400).json({ message: `الكمية المطلوبة غير متوفرة للمنتج ${product.name}` });
       }
-      
+
       account.count -= item.count;
       if (account.count <= 3) {
         io.to("admin").emit("warning", { id: product._id, name: product.name, count: account.count });
@@ -80,7 +80,7 @@ router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (
       }
       await product.save();
     }
-    
+
     const image = req.file?.filename;
 
     const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.count), 0);
@@ -94,6 +94,10 @@ router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (
     });
 
     io.to("admin").emit("newOrder", order);
+    await sendPushToAdmins({
+      title: "طلب جديد",
+      body: `طلب جديد بقيمة ${totalPrice} جنيه من ${user?.name || ""}`,
+    });
     await createNotification({ title: "طلب جديد", message: `قام ${"زائر"} بعمل طلب جديد`, type: "success" });
 
     res.status(200).json({ message: "تم إرسال طلبك بنجاح وفي انتظار مراجعة الإيصال", type: "success", order });

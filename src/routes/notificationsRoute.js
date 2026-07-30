@@ -63,4 +63,37 @@ router.delete("/admin/notifications/:id", authMiddleware, adminMiddleware, async
     }
 });
 
+router.post("/admin/notifications/subscribe", authMiddleware, (req, res) => {
+    try {
+        const { subscription } = req.body;
+
+        if (!subscription?.endpoint || !subscription?.keys) {
+            return res.status(400).json({
+                success: false,
+                message: "بيانات الاشتراك ناقصة",
+            });
+        }
+
+        await Subscription.findOneAndUpdate(
+            { endpoint: subscription.endpoint },
+            {
+                user: req.user.id,
+                role: req.user.role === "admin" ? "admin" : "user",
+                endpoint: subscription.endpoint,
+                keys: subscription.keys,
+            },
+            {
+                upsert: true,
+                returnDocument: "after",
+            }
+        );
+
+        res.json({ success: true, message: "Subscribed" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+})
+
+
+
 export default router;
