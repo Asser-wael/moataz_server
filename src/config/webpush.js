@@ -1,4 +1,3 @@
-import "./env.js";
 import webpush from "web-push";
 
 
