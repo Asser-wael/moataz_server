@@ -62,6 +62,8 @@ router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (
     const user = await UserModel.findById(req.user?.id)
 
     const cart = user ? user.cart : JSON.parse(req.body.cart);
+    console.log(cart);
+    
 
     if (!cart || cart.length === 0) return res.status(400).json({ message: "السلة فارغة" });
 
