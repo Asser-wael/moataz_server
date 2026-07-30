@@ -6,6 +6,7 @@ import { authMiddleware, adminMiddleware, optionalAuthMiddleware } from "../midd
 import ProductModel from "../models/Product.js";
 import { createNotification } from "../services/notificationService.js";
 import UserModel from "../models/User.js";
+import { sendPushToAdmins } from "../utils/sendPush.js";
 
 const router = express.Router();
 
