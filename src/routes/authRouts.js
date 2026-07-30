@@ -294,7 +294,7 @@ router.post("/refresh", (req, res) => {
 });
 
 // ✅ LOGOUT
-router.post("/logout", authMiddleware, (req, res) => {
+router.post("/logout", authMiddleware, async (req, res) => {
       await Subscription.findOneAndDelete({
       user: req.user.id, 
     });
