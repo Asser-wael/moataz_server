@@ -5,6 +5,7 @@ import UserModel from "../models/User.js";
 import resend from "../config/resend.js";
 import dotenv from "dotenv";
 import { authMiddleware } from "../middlewares/auth.js";
+import Subscription from "../models/Subscription.js";
 
 dotenv.config();
 
@@ -293,7 +294,11 @@ router.post("/refresh", (req, res) => {
 });
 
 // ✅ LOGOUT
-router.post("/logout", (req, res) => {
+router.post("/logout", authMiddleware, (req, res) => {
+      await Subscription.findOneAndDelete({
+      user: req.user.id, 
+    });
+
     res.clearCookie("refreshToken", {
         httpOnly: true,
         secure: true,

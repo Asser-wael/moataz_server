@@ -1,6 +1,7 @@
 import express from "express";
 import NotificationModel from "../models/Notification.js";
 import { authMiddleware, adminMiddleware } from "../middlewares/auth.js";
+import Subscription from "../models/Subscription.js";
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ router.delete("/admin/notifications/:id", authMiddleware, adminMiddleware, async
     }
 });
 
-router.post("/admin/notifications/subscribe", authMiddleware, (req, res) => {
+router.post("/admin/notifications/subscribe", authMiddleware, async (req, res) => {
     try {
         const { subscription } = req.body;
 
