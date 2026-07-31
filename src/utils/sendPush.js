@@ -2,22 +2,37 @@ import webpush from "../config/webpush.js";
 import Subscription from "../models/Subscription.js";
 
 const sendPushToSubscriptions = async (subs, payload) => {
-    const results = await Promise.allSettled(
-        subs.map((sub) =>
-            webpush.sendNotification(
-                { endpoint: sub.endpoint, keys: sub.keys },
-                JSON.stringify(payload)
-            )
-        )
-    );
+  console.log("Subscriptions:", subs.length);
 
-    results.forEach((r, i) => {
-        if (r.status === "rejected" && [404, 410].includes(r.reason?.statusCode)) {
-            Subscription.deleteOne({ _id: subs[i]._id }).exec();
-        }
-    });
+  const results = await Promise.allSettled(
+    subs.map((sub) =>
+      webpush.sendNotification(
+        {
+          endpoint: sub.endpoint,
+          keys: sub.keys,
+        },
+        JSON.stringify(payload)
+      )
+    )
+  );
+
+  console.log(results);
+
+  results.forEach((r, i) => {
+    if (r.status === "fulfilled") {
+      console.log("Push sent:", subs[i].endpoint);
+    } else {
+      console.error("Push failed:", r.reason);
+    }
+
+    if (
+      r.status === "rejected" &&
+      [404, 410].includes(r.reason?.statusCode)
+    ) {
+      Subscription.deleteOne({ _id: subs[i]._id }).exec();
+    }
+  });
 };
-
 // لكل الأدمنز
 export const sendPushToAdmins = async (payload) => {
     const subs = await Subscription.find({ role: "admin" });
