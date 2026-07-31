@@ -56,67 +56,37 @@ router.get("/my-orders", authMiddleware, async (req, res) => {
 // checkOut بقى شغال للـ guest وللـ user المسجل مع بعض
 router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (req, res) => {
   try {
-    console.log("========== CHECKOUT START ==========");
-
-    console.log("REQ USER:");
-    console.log(req.user);
-
-    console.log("REQ BODY:");
-    console.log(req.body);
-
-    console.log("REQ FILE:");
-    console.log(req.file);
-
     const { walletType, walletName, walletNumber, whats } = req.body;
 
     const io = getIO();
 
-    console.log("Getting user...");
-
     const user = await UserModel.findById(req.user?.id);
 
-    console.log("USER FROM DB:");
-    console.log(user);
-
-    let cart;
-
-    if (user) {
-      console.log("Using USER CART");
-      cart = user.cart;
-    } else {
-      console.log("Using GUEST CART");
-      cart = JSON.parse(req.body.cart || "[]");
-    }
-
-    console.log("FINAL CART:");
-    console.log(cart);
+    const cart = user
+      ? user.cart
+      : JSON.parse(req.body.cart || "[]");
 
 
     if (!cart || cart.length === 0) {
-      console.log("CART EMPTY ❌");
-      return res.status(400).json({ message: "السلة فارغة" });
+      return res.status(400).json({
+        message: "السلة فارغة",
+        type: "error",
+      });
     }
 
 
-    console.log("Checking products...");
-
     for (const item of cart) {
-
-      console.log("CURRENT ITEM:");
-      console.log(item);
-
 
       const product = await ProductModel.findById(
         item.productId || item._id
       );
 
-      console.log("PRODUCT:");
-      console.log(product?._id);
-
 
       if (!product) {
-        console.log("PRODUCT NOT FOUND ❌");
-        return res.status(404).json({ message: "المنتج غير موجود" });
+        return res.status(404).json({
+          message: "المنتج غير موجود",
+          type: "error",
+        });
       }
 
 
@@ -125,24 +95,45 @@ router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (
       );
 
 
-      console.log("ACCOUNT:");
-      console.log(account);
+      if (!account) {
+        return res.status(400).json({
+          message: `الخيار ${item.option} غير موجود للمنتج ${product.name}`,
+          type: "error",
+        });
+      }
 
 
-      if (!account || account.count < item.count) {
-        console.log("NOT ENOUGH STOCK ❌");
+      if (account.count < item.count) {
 
         return res.status(400).json({
-          message: `الكمية المطلوبة غير متوفرة للمنتج ${product.name}`
+          message:
+            account.count === 0
+              ? `المنتج ${product.name} خلص من المخزون`
+              : `المتوفر من ${product.name} فقط ${account.count}`,
+          type: "error",
         });
       }
 
 
       account.count -= item.count;
 
-      await product.save();
 
-      console.log("PRODUCT UPDATED ✅");
+      if (account.count <= 3) {
+        io.to("admin").emit("warning", {
+          id: product._id,
+          name: product.name,
+          count: account.count,
+        });
+
+        await createNotification({
+          title: "مخزون منخفض!",
+          message: `المنتج ${product.name} أوشك على النفاذ`,
+          type: "warning",
+        });
+      }
+
+
+      await product.save();
     }
 
 
@@ -155,10 +146,6 @@ router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (
     );
 
 
-    console.log("TOTAL PRICE:");
-    console.log(totalPrice);
-
-
     const order = await OrderModel.create({
       userId: req.user?.id || null,
       paymentMethod: "wallet",
@@ -168,53 +155,40 @@ router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (
       walletNumber,
       image,
       cart,
-      totalPrice
+      totalPrice,
     });
-
-
-    console.log("ORDER CREATED:");
-    console.log(order._id);
 
 
     io.to("admin").emit("newOrder", order);
 
 
-    console.log("Sending push...");
-
-
     await sendPushToAdmins({
       title: "طلب جديد",
-      body: `طلب جديد بقيمة ${totalPrice} جنيه من ${user?.name || ""}`,
+      body: `طلب جديد بقيمة ${totalPrice} جنيه من ${user?.name || "زائر"}`,
     });
-
-
-    console.log("PUSH SENT ✅");
 
 
     await createNotification({
       title: "طلب جديد",
-      message: "قام زائر بعمل طلب جديد",
-      type: "success"
+      message: "قام عميل بعمل طلب جديد",
+      type: "success",
     });
 
 
-    console.log("========== CHECKOUT SUCCESS ==========");
-
-
-    res.status(200).json({
+    return res.status(200).json({
       message: "تم إرسال طلبك بنجاح وفي انتظار مراجعة الإيصال",
       type: "success",
-      order
+      order,
     });
 
 
   } catch (error) {
 
-    console.log("========== CHECKOUT ERROR ==========");
-    console.error(error);
+    console.error("Checkout Error:", error);
 
-    res.status(500).json({
-      message: "حدث خطأ أثناء معالجة الطلب"
+    return res.status(500).json({
+      message: "حدث خطأ أثناء معالجة الطلب",
+      type: "error",
     });
   }
 });
