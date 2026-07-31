@@ -67,6 +67,8 @@ router.delete("/admin/notifications/:id", authMiddleware, adminMiddleware, async
 router.post("/admin/notifications/subscribe", authMiddleware, async (req,res)=>{
   try {
     const { subscription } = req.body;
+    console.log("REQ.USER:", req.user);
+    console.log("SUBSCRIPTION:", req.body.subscription);
 
     await Subscription.findOneAndUpdate(
       {
@@ -83,19 +85,19 @@ router.post("/admin/notifications/subscribe", authMiddleware, async (req,res)=>{
         new: true,
       }
     );
-
     res.json({
       message:"Push subscribed successfully",
       type:"success",
     });
 
-  } catch(error){
-    res.status(500).json({
-      message:"Subscribe error",
-      type:"error"
-    });
-  }
-});
+} catch (error) {
+  console.error("Subscribe Error:", error);
+
+  res.status(500).json({
+    message: error.message,
+    type: "error",
+  });
+}})
 
 
 export default router;
