@@ -162,10 +162,14 @@ router.post("/checkOut", optionalAuthMiddleware, upload.single("image"), async (
     io.to("admin").emit("newOrder", order);
 
 
-    await sendPushToAdmins({
-      title: "طلب جديد",
-      body: `طلب جديد بقيمة ${totalPrice} جنيه من ${user?.name || "زائر"}`,
-    });
+    try {
+      await sendPushToAdmins({
+        title: "طلب جديد",
+        body: `طلب جديد بقيمة ${totalPrice} جنيه من ${user?.name || "زائر"}`,
+      });
+    } catch (err) {
+      console.log("Push error:", err.message);
+    }
 
 
     await createNotification({
